@@ -11,6 +11,11 @@
 // TODO: windows
 #include <unistd.h>
 
+#define GREEN "\033[32m"
+#define RED "\033[31m"
+#define ORANGE "\033[33m"
+#define RESET "\033[39m"
+
 #ifndef COMPILER
 
 #if defined(__clang__)
@@ -51,6 +56,7 @@
 typedef struct module_t module_t;
 struct module_t {
     char name[32];
+    char module[32];
     char src[256];
     char extra_flags[256];
     char special_flags[256];
@@ -126,13 +132,23 @@ static inline int cbuild_bcmd_(
     (*cmd)[*len] = 0;
     return 0;
 }
+
 static inline void cbuild_call_or_panic_(char* cmd)
 {
-    printf("%s\n", cmd);
+    printf(GREEN "[running]" RESET " %s\n", cmd);
     int r = system(cmd);
     if (r != 0) {
-        fprintf(stderr, "CBUILD PANIC!: '%s'\n", cmd);
+        fprintf(stderr, RED "CBUILD PANIC!" RESET ": '%s'\n", cmd);
         exit(1);
+    }
+}
+
+static inline void cbuild_call_or_warn_(char* cmd)
+{
+    printf(GREEN "[running]" RESET " %s\n", cmd);
+    int r = system(cmd);
+    if (r != 0) {
+        fprintf(stderr, ORANGE "CBUILD WARN!" RESET ": '%s'\n", cmd);
     }
 }
 
@@ -154,6 +170,18 @@ static inline void auto_update(char** argv)
     cbuild_call_or_panic_(cmd);
     free(cmd);
     exit(0);
+}
+
+static inline void rm(char* p)
+{
+    char* cmd = NULL;
+    uint32_t len = 0;
+    uint32_t size = 0;
+
+    cbuild_bcmd_(&cmd, &len, &size, "rm", 0);
+    cbuild_bcmd_(&cmd, &len, &size, p, 1);
+    cbuild_call_or_warn_(cmd);
+    free(cmd);
 }
 
 static inline void cbuild_clean_dir_(char* p)
@@ -192,6 +220,10 @@ static inline void cbuild_compile_module_(char* name, char* flags)
             if (strcmp(mi->name, name) != 0) {
                 continue;
             }
+            if (*mi->module != 0) {
+                cbuild_compile_module_(mi->module, flags);
+                continue;
+            }
             cbuild_eflags_add_(mi->extra_flags);
             if (!recomp_needed && cbuild_should_recomp_(mod_name, mi->src)) {
                 recomp_needed = 1;
@@ -207,6 +239,9 @@ static inline void cbuild_compile_module_(char* name, char* flags)
     uint32_t cmd_size = 0;
     for (mi = modules; mi != modules + modules_len; ++mi) {
         if (strcmp(mi->name, name) != 0) {
+            continue;
+        }
+        if (*mi->module != 0) {
             continue;
         }
         cbuild_bcmd_(&cmd, &cmd_len, &cmd_size, COMPILER " -c -o", 0);
@@ -253,8 +288,6 @@ static inline void cbuild_compile_module_(char* name, char* flags)
 
 static inline void compile(char** prog, char* flags)
 {
-    // TODO: check if module exists and recomp is necessary
-
     char* cmd = NULL;
     uint32_t len = 0;
     uint32_t size = 0;

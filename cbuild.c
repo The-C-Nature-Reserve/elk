@@ -17,7 +17,8 @@ int main(int argc, char** argv)
     if (argc == 1) {
         compile(elk, FLAGS);
     } else if (strcmp(argv[1], "clean") == 0) {
-        // TODO
+        rm("build/*");
+        rm("out");
     }
     return 0;
 }
