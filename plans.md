@@ -7,7 +7,7 @@
       If links with remote library has to provide the repo prefix. If not
       provided elk will search for stuff and ask if right thing was found
       
-* [ ] embed: embedded tool from Erwin
+* [ ] embed: embedded tool for AVR development
     - [ ] init
     - [ ] config
     - [ ] build
