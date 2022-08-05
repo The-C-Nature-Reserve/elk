@@ -23,6 +23,12 @@ int main(int argc, char** argv)
         rm("build/*");
         rm("out");
         rm("-rf test/*");
+    } else if(strcmp(argv[1], "install") == 0) {
+        call_or_panic("cp out /usr/bin/elk");
+    } else if(strcmp(argv[1], "uninstall") == 0) {
+        call_or_panic("rm /usr/bin/elk");
+    }else {
+        fprintf(stderr, "Err: unknown option: '%s'", argv[1]);
     }
     return 0;
 }
