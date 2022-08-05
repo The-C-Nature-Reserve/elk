@@ -3,6 +3,6 @@
 
 int main(int argc, char** argv)
 {
-    printf("Hello World!\n");
+    run_tool(argv + 1);
     return 0;
 }
