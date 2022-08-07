@@ -9,6 +9,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include <pthread.h>
+
 // TODO: windows
 #include <unistd.h>
 
@@ -66,6 +68,101 @@ struct module_t {
 
 extern module_t modules[];
 extern uint32_t modules_len;
+
+// simple pool ----------------------------------------------------------------
+typedef struct bv_task_t_ bv_task_t_;
+struct bv_task_t_ {
+    bv_task_t_* next;
+    char* cmd;
+};
+
+typedef struct bv_pool_t_ bv_pool_t_;
+struct bv_pool_t_ {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+
+    pthread_t* threads;
+    uint32_t num_threads;
+    bv_task_t_* stack;
+
+    bool alive;
+};
+
+static void* bv_pool_work_(void* a)
+{
+    bv_pool_t_* p = a;
+    bv_task_t_* t = NULL;
+
+    bool alive = 1;
+    while (alive || t != NULL) {
+        pthread_mutex_lock(&p->mutex);
+        while (p->alive && p->stack == NULL) {
+            pthread_cond_wait(&p->cond, &p->mutex);
+        }
+        t = p->stack;
+        alive = p->alive;
+        if (p->stack != NULL) {
+            p->stack = p->stack->next;
+        }
+        pthread_mutex_unlock(&p->mutex);
+
+        if (t != NULL) {
+            printf("\033[32m[running]\033[39m %s\n", t->cmd);
+            system(t->cmd);
+            free(t->cmd);
+            free(t);
+        }
+    }
+    return NULL;
+}
+
+static void bv_call_async_(bv_pool_t_* p, char* cmd)
+{
+    bv_task_t_* t = malloc(sizeof(*t));
+    t->cmd = cmd;
+
+    pthread_mutex_lock(&p->mutex);
+    t->next = p->stack;
+    p->stack = t;
+    pthread_mutex_unlock(&p->mutex);
+    pthread_cond_signal(&p->cond);
+}
+
+static void bv_pool_free_(bv_pool_t_* p)
+{
+    pthread_mutex_lock(&p->mutex);
+    p->alive = 0;
+    pthread_mutex_unlock(&p->mutex);
+
+    pthread_cond_broadcast(&p->cond);
+
+    pthread_t* t;
+    for (t = p->threads; t != p->threads + p->num_threads; t++) {
+        pthread_cond_broadcast(&p->cond);
+        pthread_join(*t, NULL);
+    }
+    free(p->threads);
+    free(p);
+}
+
+static bv_pool_t_* bv_pool_create_(uint32_t num_threads)
+{
+    bv_pool_t_* p = malloc(sizeof(*p));
+    *p = (bv_pool_t_) {
+        .num_threads = num_threads,
+        .mutex = PTHREAD_MUTEX_INITIALIZER,
+        .cond = PTHREAD_COND_INITIALIZER,
+        .stack = NULL,
+        .alive = 1,
+    };
+    p->threads = malloc(num_threads * sizeof(*p->threads));
+
+    pthread_t* t;
+    for (t = p->threads; t != p->threads + p->num_threads; t++) {
+        pthread_create(t, NULL, bv_pool_work_, p);
+    }
+    return p;
+}
 
 // simple set -----------------------------------------------------------------
 
@@ -219,7 +316,7 @@ static inline void auto_update(char** argv)
     uint32_t len = 0;
     uint32_t size = 0;
 
-    bv_bcmd_(&cmd, &len, &size, COMPILER " -o beaver beaver.c &&", 0);
+    bv_bcmd_(&cmd, &len, &size, COMPILER " -o beaver beaver.c -lpthread &&", 0);
     for (; *argv; argv++) {
         bv_bcmd_(&cmd, &len, &size, *argv, 1);
     }
@@ -275,6 +372,8 @@ static void bv_eflags_add_(char* flags)
         }
     }
 }
+
+static bv_pool_t_* bv_pool_ = NULL;
 
 static inline void bv_compile_module_(char* name, char* flags)
 {
@@ -357,9 +456,11 @@ static inline void bv_compile_module_(char* name, char* flags)
             bv_bcmd_(&cmd, &len, &size, flags, 1);
             bv_bcmd_(&cmd, &len, &size, mi->extra_flags, 1);
             bv_bcmd_(&cmd, &len, &size, mi->src, 1);
-            call_or_panic(cmd);
-            *cmd = 0;
+            //call_or_panic(cmd);
+            bv_call_async_(bv_pool_, cmd);
+            cmd = NULL;
             len = 0;
+            size = 0;
         }
 
         bv_eflags_add_(mi->extra_flags);
@@ -375,13 +476,16 @@ static inline void compile(char** program, char* flags)
     bv_files_ = bv_set_create_(modules_len);
     bv_modules_ = bv_set_create_(modules_len);
 
-    // compile modules
+    // TODO define num threads
+    // compile modules asynchronisly
+    bv_pool_ = bv_pool_create_(4);
     {
         char** pi = NULL;
         for (pi = program; *pi; pi++) {
             bv_compile_module_(*pi, flags);
         }
     }
+    bv_pool_free_(bv_pool_);
 
     // compile everything together
     {

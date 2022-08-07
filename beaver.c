@@ -1,7 +1,8 @@
 #include "lib/beaver.h"
 
-#define FLAGS "-g -Wall -Werror -Og"
+#define FLAGS "-g -Wall -Werror"
 #define FAST_FLAGS "-Ofast -march=native"
+
 
 module_t modules[] = {
     { .name = "core", .src = "main.c" },
@@ -31,9 +32,8 @@ int main(int argc, char** argv)
     if (argc == 1) {
         compile(elk, FLAGS);
     } else if (strcmp(argv[1], "clean") == 0) {
-        rm("-r build/*");
+        call_or_warn("rm $(find build/ -type f)");
         rm("out");
-        rm("-rf test/*");
     } else if (strcmp(argv[1], "install") == 0) {
         // TODO: windows
         call_or_panic("cp out /usr/bin/elk");
@@ -42,6 +42,9 @@ int main(int argc, char** argv)
         call_or_panic("rm /usr/bin/elk");
     } else if (strcmp(argv[1], "fast") == 0) {
         compile(elk, FAST_FLAGS);
+    } else if (strcmp(argv[1], "hard-clean") == 0) {
+        rm("-rf build/");
+        rm("out");
     } else {
         fprintf(stderr, "Err: unknown option: '%s'", argv[1]);
     }
