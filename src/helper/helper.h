@@ -17,7 +17,7 @@
 // linux for mkdir
 #include <sys/stat.h>
 
-#include "../config.h"
+#include "../../config.h"
 #include "config_helper.h"
 
 void download_file(char* path, char* url);

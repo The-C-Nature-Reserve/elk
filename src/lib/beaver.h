@@ -1,6 +1,10 @@
 #ifndef BEAVER_H
 #define BEAVER_H
 
+#ifndef BEAVER_ASYNC
+#define BEAVER_ASYNC 0
+#endif
+
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -9,6 +13,10 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#if BEAVER_ASYNC == 1
+#include "asaw.h"
+#endif
+
 #include <pthread.h>
 
 // TODO: windows
@@ -16,9 +24,9 @@
 
 #define GREEN "\033[32m"
 #define RED "\033[31m"
-//#define ORANGE "\033[33m"
 #define ORANGE "\033[93m"
 #define RESET "\033[39m"
+#define BLUE "\033[96m"
 
 #ifndef COMPILER
 
@@ -50,9 +58,6 @@
 #define BEAVER_EXTRA_FLAGS_BUFFER_SIZE 16
 #endif
 
-// TODO are there other linkers ? how to detect them
-#define LINKER "ld"
-
 #ifndef BEAVER_DIRECTORY
 #define BEAVER_DIRECTORY "build/"
 #endif
@@ -68,101 +73,6 @@ struct module_t {
 
 extern module_t modules[];
 extern uint32_t modules_len;
-
-// simple pool ----------------------------------------------------------------
-typedef struct bv_task_t_ bv_task_t_;
-struct bv_task_t_ {
-    bv_task_t_* next;
-    char* cmd;
-};
-
-typedef struct bv_pool_t_ bv_pool_t_;
-struct bv_pool_t_ {
-    pthread_mutex_t mutex;
-    pthread_cond_t cond;
-
-    pthread_t* threads;
-    uint32_t num_threads;
-    bv_task_t_* stack;
-
-    bool alive;
-};
-
-static void* bv_pool_work_(void* a)
-{
-    bv_pool_t_* p = a;
-    bv_task_t_* t = NULL;
-
-    bool alive = 1;
-    while (alive || t != NULL) {
-        pthread_mutex_lock(&p->mutex);
-        while (p->alive && p->stack == NULL) {
-            pthread_cond_wait(&p->cond, &p->mutex);
-        }
-        t = p->stack;
-        alive = p->alive;
-        if (p->stack != NULL) {
-            p->stack = p->stack->next;
-        }
-        pthread_mutex_unlock(&p->mutex);
-
-        if (t != NULL) {
-            printf("\033[32m[running]\033[39m %s\n", t->cmd);
-            system(t->cmd);
-            free(t->cmd);
-            free(t);
-        }
-    }
-    return NULL;
-}
-
-static void bv_call_async_(bv_pool_t_* p, char* cmd)
-{
-    bv_task_t_* t = malloc(sizeof(*t));
-    t->cmd = cmd;
-
-    pthread_mutex_lock(&p->mutex);
-    t->next = p->stack;
-    p->stack = t;
-    pthread_mutex_unlock(&p->mutex);
-    pthread_cond_signal(&p->cond);
-}
-
-static void bv_pool_free_(bv_pool_t_* p)
-{
-    pthread_mutex_lock(&p->mutex);
-    p->alive = 0;
-    pthread_mutex_unlock(&p->mutex);
-
-    pthread_cond_broadcast(&p->cond);
-
-    pthread_t* t;
-    for (t = p->threads; t != p->threads + p->num_threads; t++) {
-        pthread_cond_broadcast(&p->cond);
-        pthread_join(*t, NULL);
-    }
-    free(p->threads);
-    free(p);
-}
-
-static bv_pool_t_* bv_pool_create_(uint32_t num_threads)
-{
-    bv_pool_t_* p = malloc(sizeof(*p));
-    *p = (bv_pool_t_) {
-        .num_threads = num_threads,
-        .mutex = PTHREAD_MUTEX_INITIALIZER,
-        .cond = PTHREAD_COND_INITIALIZER,
-        .stack = NULL,
-        .alive = 1,
-    };
-    p->threads = malloc(num_threads * sizeof(*p->threads));
-
-    pthread_t* t;
-    for (t = p->threads; t != p->threads + p->num_threads; t++) {
-        pthread_create(t, NULL, bv_pool_work_, p);
-    }
-    return p;
-}
 
 // simple set -----------------------------------------------------------------
 
@@ -306,24 +216,38 @@ static inline void bv_check_build_dir_()
     call_or_warn("mkdir -p " BEAVER_DIRECTORY);
 }
 
-static inline void auto_update(char** argv)
-{
-    if (!bv_should_recomp_("beaver", "beaver.c")) {
-        return;
-    }
+#define recompile() bv_recompile_beaver_(NULL)
 
+static inline void bv_recompile_beaver_(char** argv)
+{
     char* cmd = NULL;
     uint32_t len = 0;
     uint32_t size = 0;
 
-    bv_bcmd_(&cmd, &len, &size, COMPILER " -o beaver beaver.c -lpthread &&", 0);
-    for (; *argv; argv++) {
-        bv_bcmd_(&cmd, &len, &size, *argv, 1);
+    if (argv == NULL) {
+        bv_bcmd_(&cmd, &len, &size,
+            COMPILER " -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread",
+            0);
+    } else {
+        bv_bcmd_(&cmd, &len, &size,
+            COMPILER " -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread &&",
+            0);
+        for (; *argv; argv++) {
+            bv_bcmd_(&cmd, &len, &size, *argv, 1);
+        }
     }
 
     call_or_panic(cmd);
     free(cmd);
     exit(0);
+}
+
+static inline void auto_update(char** argv)
+{
+    if (!bv_should_recomp_("beaver", "beaver.c")) {
+        return;
+    }
+    bv_recompile_beaver_(argv);
 }
 
 static inline void rm(char* p)
@@ -373,7 +297,16 @@ static void bv_eflags_add_(char* flags)
     }
 }
 
-static bv_pool_t_* bv_pool_ = NULL;
+void* bv_async_call_(void* cmd)
+{
+    printf(GREEN "[running" BLUE ":async" GREEN "]" RESET " %s\n", (char*)cmd);
+    int r = system(cmd);
+    if (r != 0) {
+        fprintf(stderr, ORANGE "CBUILD WARN!: " RESET "%s\n", (char*)cmd);
+    }
+    free(cmd);
+    return NULL;
+}
 
 static inline void bv_compile_module_(char* name, char* flags)
 {
@@ -456,11 +389,17 @@ static inline void bv_compile_module_(char* name, char* flags)
             bv_bcmd_(&cmd, &len, &size, flags, 1);
             bv_bcmd_(&cmd, &len, &size, mi->extra_flags, 1);
             bv_bcmd_(&cmd, &len, &size, mi->src, 1);
-            //call_or_panic(cmd);
-            bv_call_async_(bv_pool_, cmd);
+
+#if BEAVER_ASYNC == 1
+            async_noawait(bv_async_call_, cmd);
             cmd = NULL;
             len = 0;
             size = 0;
+#else
+            call_or_panic(cmd);
+            *cmd = 0;
+            len = 0;
+#endif
         }
 
         bv_eflags_add_(mi->extra_flags);
@@ -476,16 +415,19 @@ static inline void compile(char** program, char* flags)
     bv_files_ = bv_set_create_(modules_len);
     bv_modules_ = bv_set_create_(modules_len);
 
-    // TODO define num threads
-    // compile modules asynchronisly
-    bv_pool_ = bv_pool_create_(4);
+// compile modules asynchronisly
+#if BEAVER_ASYNC == 1
+    asaw_init(4);
+#endif
     {
         char** pi = NULL;
         for (pi = program; *pi; pi++) {
             bv_compile_module_(*pi, flags);
         }
     }
-    bv_pool_free_(bv_pool_);
+#if BEAVER_ASYNC == 1
+    asaw_free();
+#endif
 
     // compile everything together
     {

@@ -1,9 +1,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
-#include "helper/config_helper.h"
+#include "src/helper/config_helper.h"
 
 // tools
-#include "tools/init.h"
+#include "src/tools/init.h"
 
 #define COMPILER "gcc"
 

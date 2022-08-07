@@ -1,22 +1,25 @@
-#include "lib/beaver.h"
+#define ASAW_LOCATION "src/lib/asaw.c"
+#include "src/lib/beaver.h"
+
 
 #define FLAGS "-g -Wall -Werror"
 #define FAST_FLAGS "-Ofast -march=native"
 
-
 module_t modules[] = {
-    { .name = "core", .src = "main.c" },
+    { .name = "core", .src = "src/main.c" },
     { .name = "core", .src = "config.c" },
-    { .name = "config_helper", .src = "helper/config_helper.c" },
-    { .name = "helper", .src = "helper/helper.c", .extra_flags = "-lcurl" },
 
-    { .name = "smap", .src = "lib/smap.c" },
+    { .name = "config_helper", .src = "src/helper/config_helper.c" },
 
-    { .name = "argparse", .src = "lib/argparse.c" },
+    { .name = "helper", .src = "src/helper/helper.c", .extra_flags = "-lcurl" },
+
+    { .name = "smap", .src = "src/lib/smap.c" },
+
+    { .name = "argparse", .src = "src/lib/argparse.c" },
     { .name = "argparse", .module = "smap" },
 
     // Tools
-    { .name = "init", .src = "tools/init.c" },
+    { .name = "init", .src = "src/tools/init.c" },
     { .name = "init", .module = "argparse" },
 
 };
@@ -45,7 +48,9 @@ int main(int argc, char** argv)
     } else if (strcmp(argv[1], "hard-clean") == 0) {
         rm("-rf build/");
         rm("out");
-    } else {
+    } else if(strcmp(argv[1], "recomp-beaver") == 0) {
+        recompile();
+    }else {
         fprintf(stderr, "Err: unknown option: '%s'", argv[1]);
     }
     return 0;
