@@ -1,9 +1,9 @@
 #define ASAW_LOCATION "src/lib/asaw.c"
 #include "src/lib/beaver.h"
 
+#define FLAGS "-pipe -g -Wall -Werror"
+#define FAST_FLAGS "-pipe -Ofast -march=native"
 
-#define FLAGS "-g -Wall -Werror"
-#define FAST_FLAGS "-Ofast -march=native"
 
 module_t modules[] = {
     { .name = "core", .src = "src/main.c" },

@@ -226,11 +226,11 @@ static inline void bv_recompile_beaver_(char** argv)
 
     if (argv == NULL) {
         bv_bcmd_(&cmd, &len, &size,
-            COMPILER " -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread",
+            COMPILER " -Ofast -march=native -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread",
             0);
     } else {
         bv_bcmd_(&cmd, &len, &size,
-            COMPILER " -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread &&",
+            COMPILER " -Ofast -march=native -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread &&",
             0);
         for (; *argv; argv++) {
             bv_bcmd_(&cmd, &len, &size, *argv, 1);
