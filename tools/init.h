@@ -2,9 +2,11 @@
 #define INIT_H
 #include <stdio.h>
 #include "../helper/helper.h"
+#include "../lib/argparse.h"
+#include <stdlib.h>
 
 #include "../helper/config_helper.h"
 
-void init(char** argv);
+void init(int argc, char** argv);
 
 #endif

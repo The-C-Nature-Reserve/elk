@@ -5,9 +5,9 @@
 #include <stdio.h>
 #include <string.h>
 
-void run_tool(char** argv);
+void run_tool(int argc, char** argv);
 
-typedef void(*tool_function_t)(char** argv);
+typedef void(*tool_function_t)(int argc, char** argv);
 
 typedef struct tool_t tool_t;
 struct tool_t {

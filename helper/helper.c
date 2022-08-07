@@ -11,6 +11,7 @@ static size_t write_data(void* ptr, size_t size, size_t nmemb, FILE* stream)
 
 void download_file(char* path, char* url)
 {
+    INFO("downloading file: '%s'", path);
     CURL* curl;
     FILE* fh;
     curl = curl_easy_init();
@@ -29,4 +30,8 @@ void download_file(char* path, char* url)
 }
 
 // TODO: windows
-int make_directory(char* path) { return mkdir(path, S_IRWXU); }
+int make_directory(char* path)
+{
+    INFO("making directory: '%s'", path);
+    return mkdir(path, S_IRWXU);
+}

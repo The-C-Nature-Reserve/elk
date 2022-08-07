@@ -3,6 +3,7 @@
 tool_t config_tools[] = {
     { .name = "init", .fn = init },
 };
+
 uint32_t config_tools_len = sizeof(config_tools) / sizeof(*config_tools);
 
 char config_default_beaver[]
@@ -11,12 +12,12 @@ char config_default_beaver[]
       "#define FLAGS \"-g -Wall -Werror -Og\"\n"
       "\n"
       "module_t modules[] = {\n"
-      "{ .name = \"main\", .src = \"main.c\" },\n"
+      "    { .name = \"main\", .src = \"main.c\" },\n"
       "};\n"
       "uint32_t modules_len = sizeof(modules) / sizeof(*modules);\n"
       "\n"
       "char* program[] = { \"main\", NULL };\n"
-
+      "\n"
       "int main(int argc, char** argv)\n"
       "{\n"
       "    auto_update(argv);\n"

@@ -3,6 +3,6 @@
 
 int main(int argc, char** argv)
 {
-    run_tool(argv + 1);
+    run_tool(argc - 1, argv + 1);
     return 0;
 }
