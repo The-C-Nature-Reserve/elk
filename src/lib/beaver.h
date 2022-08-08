@@ -1,10 +1,6 @@
 #ifndef BEAVER_H
 #define BEAVER_H
 
-#ifndef BEAVER_ASYNC
-#define BEAVER_ASYNC 0
-#endif
-
 #include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -13,13 +9,8 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#if BEAVER_ASYNC == 1
-#include "asaw.h"
-#endif
-
-#include <pthread.h>
-
 // TODO: windows
+#include <sys/wait.h>
 #include <unistd.h>
 
 #define GREEN "\033[32m"
@@ -83,7 +74,7 @@ struct bv_set_t_ {
     uint32_t used;
 };
 
-bv_set_t_* bv_set_create_(uint32_t size)
+static inline bv_set_t_* bv_set_create_(uint32_t size)
 {
     bv_set_t_* s = malloc(sizeof(*s));
     s->size = size << 2;
@@ -92,7 +83,7 @@ bv_set_t_* bv_set_create_(uint32_t size)
     return s;
 }
 
-void bv_set_free_(bv_set_t_* s)
+static inline void bv_set_free_(bv_set_t_* s)
 {
     if (s == NULL) {
         return;
@@ -101,7 +92,7 @@ void bv_set_free_(bv_set_t_* s)
     free(s);
 }
 
-uint32_t bv_set_pos_(bv_set_t_* s, char* k)
+static inline uint32_t bv_set_pos_(bv_set_t_* s, char* k)
 {
     uint32_t h = 8223;
     {
@@ -117,7 +108,7 @@ uint32_t bv_set_pos_(bv_set_t_* s, char* k)
     return h;
 }
 
-int bv_set_insert_(bv_set_t_* s, char* k)
+static inline int bv_set_insert_(bv_set_t_* s, char* k)
 {
     uint32_t p = bv_set_pos_(s, k);
     s->used += s->set[p] == NULL;
@@ -128,7 +119,7 @@ int bv_set_insert_(bv_set_t_* s, char* k)
     return 0;
 }
 
-bool bv_set_contains_(bv_set_t_* s, char* k)
+static inline bool bv_set_contains_(bv_set_t_* s, char* k)
 {
     uint32_t p = bv_set_pos_(s, k);
     return s->set[p] != NULL;
@@ -225,13 +216,9 @@ static inline void bv_recompile_beaver_(char** argv)
     uint32_t size = 0;
 
     if (argv == NULL) {
-        bv_bcmd_(&cmd, &len, &size,
-            COMPILER " -Ofast -march=native -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread",
-            0);
+        bv_bcmd_(&cmd, &len, &size, COMPILER " -o beaver beaver.c", 0);
     } else {
-        bv_bcmd_(&cmd, &len, &size,
-            COMPILER " -Ofast -march=native -DBEAVER_ASYNC=1 -o beaver beaver.c src/lib/asaw.c -lpthread &&",
-            0);
+        bv_bcmd_(&cmd, &len, &size, COMPILER " -o beaver beaver.c &&", 0);
         for (; *argv; argv++) {
             bv_bcmd_(&cmd, &len, &size, *argv, 1);
         }
@@ -297,15 +284,38 @@ static void bv_eflags_add_(char* flags)
     }
 }
 
-void* bv_async_call_(void* cmd)
+static void bv_async_call_(void* cmd)
 {
-    printf(GREEN "[running" BLUE ":async" GREEN "]" RESET " %s\n", (char*)cmd);
-    int r = system(cmd);
-    if (r != 0) {
-        fprintf(stderr, ORANGE "CBUILD WARN!: " RESET "%s\n", (char*)cmd);
+
+#ifdef _WIN32
+    call_or_warn(cmd);
+    free(cmd);
+#else
+    if (fork() == 0) {
+        printf(
+            GREEN "[running" BLUE ":async" GREEN "]" RESET " %s\n", (char*)cmd);
+        int r = system(cmd);
+        if (r != 0) {
+            fprintf(stderr, ORANGE "CBUILD WARN!: " RESET "%s\n", (char*)cmd);
+        }
+        free(cmd);
+        bv_set_free_(bv_files_);
+        bv_set_free_(bv_eflags_);
+        bv_set_free_(bv_modules_);
+        _exit(0);
     }
     free(cmd);
-    return NULL;
+
+#endif
+}
+
+static inline void bv_async_wait_()
+{
+#ifdef _WIN32
+#else
+    while (wait(NULL) > 0)
+        ;
+#endif
 }
 
 static inline void bv_compile_module_(char* name, char* flags)
@@ -390,16 +400,10 @@ static inline void bv_compile_module_(char* name, char* flags)
             bv_bcmd_(&cmd, &len, &size, mi->extra_flags, 1);
             bv_bcmd_(&cmd, &len, &size, mi->src, 1);
 
-#if BEAVER_ASYNC == 1
-            async_noawait(bv_async_call_, cmd);
+            bv_async_call_(cmd);
             cmd = NULL;
             len = 0;
             size = 0;
-#else
-            call_or_panic(cmd);
-            *cmd = 0;
-            len = 0;
-#endif
         }
 
         bv_eflags_add_(mi->extra_flags);
@@ -415,19 +419,14 @@ static inline void compile(char** program, char* flags)
     bv_files_ = bv_set_create_(modules_len);
     bv_modules_ = bv_set_create_(modules_len);
 
-// compile modules asynchronisly
-#if BEAVER_ASYNC == 1
-    asaw_init(4);
-#endif
+    // compile modules
     {
         char** pi = NULL;
         for (pi = program; *pi; pi++) {
             bv_compile_module_(*pi, flags);
         }
     }
-#if BEAVER_ASYNC == 1
-    asaw_free();
-#endif
+    bv_async_wait_();
 
     // compile everything together
     {
