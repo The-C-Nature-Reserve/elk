@@ -2,6 +2,11 @@
 
 void run_tool(int argc, char** argv)
 {
+    if(*argv == NULL) {
+        // TODO: print help page
+        return;
+    }
+
     tool_t* iter;
     for (iter = config_tools; iter != config_tools + config_tools_len; ++iter) {
         if (strcmp(*argv, iter->name) == 0) {
@@ -9,4 +14,5 @@ void run_tool(int argc, char** argv)
             return;
         }
     }
+    // TODO: print help page
 }
