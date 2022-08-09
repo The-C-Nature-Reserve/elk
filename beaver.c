@@ -20,10 +20,13 @@ module_t modules[] = {
     { .name = "init", .src = "src/tools/init.c" },
     { .name = "init", .module = "argparse" },
 
+    { .name = "link", .src = "src/tools/link.c" },
+    { .name = "link", .module = "argparse" },
+
 };
 uint32_t modules_len = sizeof(modules) / sizeof(*modules);
 
-char* elk[] = { "core", "helper", "init", "config_helper", NULL };
+char* elk[] = { "core", "link", "helper", "init", "config_helper", NULL };
 
 int main(int argc, char** argv)
 {

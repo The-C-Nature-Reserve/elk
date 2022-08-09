@@ -4,6 +4,7 @@
 
 // tools
 #include "src/tools/init.h"
+#include "src/tools/link.h"
 
 #define COMPILER "gcc"
 
