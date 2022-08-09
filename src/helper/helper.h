@@ -7,6 +7,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <errno.h>
+#include <stdarg.h>
+#include <string.h>
+
+#define PANIC(...)                                                             \
+    do {                                                                       \
+        fprintf(stderr, "\033[31melk PANIC!: \033[39m");                       \
+        fprintf(stderr, __VA_ARGS__);                                          \
+        fprintf(stderr, "\n");                                                 \
+        exit(1);                                                               \
+    } while (0);
+
+#define PANIC_IF(b, ...)                                                       \
+    do {                                                                       \
+        if (b) {                                                               \
+            PANIC(__VA_ARGS__);                                                \
+        }                                                                      \
+    } while (0);
+
 #define INFO(...)                                                              \
     do {                                                                       \
         fprintf(stdout, "\033[34m[info] \033[39m");                            \
