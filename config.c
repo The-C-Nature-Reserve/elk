@@ -10,8 +10,12 @@ uint32_t config_tools_len = sizeof(config_tools) / sizeof(*config_tools);
 init_config_t init_config[] = {
     { .type = TYPE_CMD, .name = "echo \"Hello World\"" },
 };
-
 uint32_t init_config_len = sizeof(init_config_t) / sizeof(*init_config);
+
+link_config_t link_config[] = {
+    { .name = "std", .location = "~/.config/repo" },
+};
+uint32_t link_config_len = sizeof(link_config_t) / sizeof(*link_config);
 
 char config_default_beaver[]
     = "#include \"lib/beaver.h\"\n"

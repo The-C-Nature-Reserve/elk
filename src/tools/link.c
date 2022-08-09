@@ -19,5 +19,9 @@ void link(int argc, char** argv)
             exit(0);
         }
     }
-    printf("link\n");
+
+    link_config_t* i;
+    for (i = link_config; i != link_config + link_config_len; ++i) {
+        printf("%s %s\n", i->name, i->location);
+    }
 }
