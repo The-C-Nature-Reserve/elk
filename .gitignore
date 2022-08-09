@@ -3,6 +3,9 @@
 beaver
 test/*
 
+#build directory
+build/
+
 # Object files
 *.o
 *.ko
@@ -38,6 +41,7 @@ test/*
 *.x86_64
 *.hex
 out
+beaver
 
 # Debug files
 *.dSYM/

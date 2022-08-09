@@ -1,6 +1,5 @@
 #include "src/lib/beaver.h"
 
-
 #define FLAGS "-pipe -g -Wall -Werror"
 #define FAST_FLAGS "-pipe -Ofast -march=native"
 
