@@ -19,34 +19,47 @@ void init(int argc, char** argv)
             exit(0);
         }
     }
-
-    int err = make_directory("lib");
-
-    if (err != 0) {
-        // TODO: error
-    }
-
-    download_file("lib/beaver.h", BEAVER_URL);
-
-    FILE* fh;
-
-    // main.c
+    
+    for (int i = 0; i < init_config_len; ++i)
     {
-        INFO("making 'main.c'");
-        fh = fopen("main.c", "w");
-        // TODO panic
-        fprintf(fh, "%s", config_default_main);
-        fclose(fh);
-    }
+        switch (init_config[i].type)
+        {
+            case TYPE_DIR:
+            {
+                make_directory(init_config[i].name);
+                break;
+            }
 
-    // beaver.c
-    {
-        INFO("making 'beaver.c'");
-        fh = fopen("beaver.c", "w");
-        fprintf(fh, "%s", config_default_beaver);
-        fclose(fh);
+            case TYPE_FILE:
+            {
+                FILE *f = fopen(init_config[i].name, "w");
 
-        INFO("compiling 'beaver.c'");
-        system(COMPILER " -o beaver beaver.c");
+                if (!f)
+                {
+                    // TODO: Error
+                }
+
+                if (init_config[i].content_func == NULL)
+                {
+                    fputs(init_config[i].content, f);
+                }
+
+                else
+                {
+                    char* str = init_config[i].content_func();
+                    fputs(str, f);
+                    free(str);
+                }
+
+                fclose(f);
+                break;
+            }
+
+            case TYPE_CMD:
+            {
+                run_command(init_config[i].name);
+                break;
+            }
+        }
     }
 }

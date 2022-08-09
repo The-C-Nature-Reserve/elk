@@ -35,3 +35,9 @@ int make_directory(char* path)
     INFO("making directory: '%s'", path);
     return mkdir(path, S_IRWXU);
 }
+
+int run_command(char* cmd)
+{
+    INFO("running command: '%s'", cmd);
+    return system(cmd);
+}

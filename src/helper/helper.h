@@ -5,6 +5,7 @@
 #include <curl/easy.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define INFO(...)                                                              \
     do {                                                                       \
@@ -17,11 +18,12 @@
 // linux for mkdir
 #include <sys/stat.h>
 
-#include "../../config.h"
 #include "config_helper.h"
 
 void download_file(char* path, char* url);
 int make_directory(char* path);
+int run_command(char* cmd);
+
 void logging(char* s);
 
 #endif
