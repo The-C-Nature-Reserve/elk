@@ -32,12 +32,12 @@ void init(int argc, char** argv)
         case TYPE_FILE: {
             FILE* f = fopen(i->name, "w");
 
-            PANIC_IF(f == NULL, "could not open file: %s: %s",
-                i->name, strerror(errno));
+            PANIC_IF(f == NULL, "could not open file: %s: %s", i->name,
+                strerror(errno));
 
             if (i->content_func == NULL) {
-                PANIC_IF(*i->content == 0,
-                    "no content provided for file: %s", i->name);
+                PANIC_IF(*i->content == 0, "no content provided for file: %s",
+                    i->name);
                 fputs(i->content, f);
             } else {
                 char* str = i->content_func();
