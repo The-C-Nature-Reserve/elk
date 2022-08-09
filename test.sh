@@ -1,0 +1,1 @@
+hyperfine './beaver clean && ./beaver'
