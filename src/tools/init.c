@@ -14,8 +14,8 @@ void init(int argc, char** argv)
         argparse(flags, flags_len, argc, argv, NULL, NULL);
 
         if (help) {
-            // TODO: print help
-            printf("init help page\n");
+            printf("The init tool will initialize the current working directory as defined by the init_config array in 'config.c'\n");
+            printf("There are no other flags than '-h' and '--help' available\n");
             exit(0);
         }
     }

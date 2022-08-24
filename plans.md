@@ -18,7 +18,7 @@
     - [ ] sync: sync remotes with upstream
     - [ ] being able to alias stuff
     - [ ] pack: pack project into independent package
-* [ ] build: only compiles thing if forced or if changes occured
+* [X] build: only compiles thing if forced or if changes occured
       options:
         - --recompile
         - --extra-flags
