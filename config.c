@@ -1,18 +1,18 @@
 #include "config.h"
 
+// TOOLS
+// ----------------------------------------------------------------------------
 tool_t config_tools[] = {
-    { .name = "init", .fn = init, .description = "will initialize a project as defined in 'config.c'"},
+    { .name = "init",
+        .fn = init,
+        .description = "will initialize a project as defined in 'config.c'" },
 };
 
 uint32_t config_tools_len = sizeof(config_tools) / sizeof(*config_tools);
 
-init_config_t init_config[] = {
-    { .type = TYPE_CMD, .name = "echo \"Hello World\"" },
-};
-
-uint32_t init_config_len = sizeof(init_config_t) / sizeof(*init_config);
-
-char config_default_beaver[]
+// INIT
+// ----------------------------------------------------------------------------
+static char config_default_beaver[]
     = "#include \"lib/beaver.h\"\n"
       "\n"
       "#define FLAGS \"-g -Wall -Werror -Og\"\n"
@@ -36,7 +36,7 @@ char config_default_beaver[]
       "    return 0;\n"
       "}\n";
 
-char config_default_main[] = "#include <stdio.h>\n"
+static char config_default_main[] = "#include <stdio.h>\n"
                              "#include <stdint.h>\n"
                              "\n"
                              "int main(void)\n"
@@ -44,3 +44,24 @@ char config_default_main[] = "#include <stdio.h>\n"
                              "    printf(\"Hello World!\\n\");\n"
                              "    return 0;\n"
                              "}\n";
+
+init_config_t init_config[] = {
+    { .type = INIT_DIR, .name = "build" },
+    { .type = INIT_DIR, .name = "lib" },
+    { .type = INIT_CMD,
+        .name = "wget "
+                "https://raw.githubusercontent.com/The-C-Nature-Reserve/beaver/"
+                "main/beaver.h -P lib/" },
+    {
+        .type = INIT_FILE,
+        .name = "beaver.c",
+        .content = config_default_beaver,
+    },
+    {
+        .type = INIT_FILE,
+        .name = "main.c",
+        .content = config_default_main,
+    },
+    { .type = INIT_CMD, .name = "gcc beaver.c -o beaver" },
+};
+uint32_t init_config_len = sizeof(init_config) / sizeof(*init_config);

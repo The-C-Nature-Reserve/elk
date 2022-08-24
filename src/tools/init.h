@@ -8,16 +8,18 @@
 #include "../helper/helper.h"
 #include "../lib/argparse.h"
 
-#define TYPE_DIR ((uint8_t)0)
-#define TYPE_FILE ((uint8_t)1)
-#define TYPE_CMD ((uint8_t)2)
+typedef enum {
+    INIT_DIR,
+    INIT_FILE,
+    INIT_CMD,
+} init_config_type_t;
 
 typedef struct init_config_t init_config_t;
 struct init_config_t {
     char* name;
     char* content;
     char* (*content_func)();
-    uint8_t type;
+    init_config_type_t type;
 };
 
 extern init_config_t init_config[];

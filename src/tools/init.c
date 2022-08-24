@@ -24,12 +24,12 @@ void init(int argc, char** argv)
     for (i = init_config; i < init_config + init_config_len; ++i) {
         switch (i->type) {
 
-        case TYPE_DIR: {
+        case INIT_DIR: {
             make_directory(i->name);
             break;
         }
 
-        case TYPE_FILE: {
+        case INIT_FILE: {
             FILE* f = fopen(i->name, "w");
 
             PANIC_IF(f == NULL, "could not open file: %s: %s", i->name,
@@ -50,7 +50,7 @@ void init(int argc, char** argv)
             break;
         }
 
-        case TYPE_CMD: {
+        case INIT_CMD: {
             run_command(i->name);
             break;
         }
