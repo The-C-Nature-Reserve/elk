@@ -24,7 +24,8 @@ typedef void(*tool_function_t)(int argc, char** argv);
 
 typedef struct tool_t tool_t;
 struct tool_t {
-    char name[64];
+    char* name;
+    char* description;
     tool_function_t fn;
 };
 

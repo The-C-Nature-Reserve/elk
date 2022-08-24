@@ -1,7 +1,7 @@
 #include "config.h"
 
 tool_t config_tools[] = {
-    { .name = "init", .fn = init },
+    { .name = "init", .fn = init, .description = "will initialize a project as defined in 'config.c'"},
 };
 
 uint32_t config_tools_len = sizeof(config_tools) / sizeof(*config_tools);
